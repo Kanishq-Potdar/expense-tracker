@@ -5,7 +5,6 @@ from transactions import (
     filter_by_type,
     filter_by_date_range
 )
-
 from database import connect
 import datetime
 
