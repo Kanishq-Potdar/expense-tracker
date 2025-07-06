@@ -1,3 +1,10 @@
+# main.py
+
+# This file was used for CLI version of the expense tracker.
+# The app is now GUI-only and can be run from gui/app.py
+
+# Run the GUI from app.py
+
 from transactions import (
     add_transaction,
     view_transactions,
