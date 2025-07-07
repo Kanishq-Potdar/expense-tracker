@@ -2,7 +2,7 @@ import customtkinter as ctk
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from transactions import add_transaction, view_transactions
+from transactions import add_transaction, view_transactions, get_monthly_summary, export_to_csv
 import datetime
 
 ctk.set_appearance_mode("System")  # "Dark", "Light", or "System"
@@ -35,6 +35,8 @@ class ExpenseTrackerApp(ctk.CTk):
         self.add_button = ctk.CTkButton(self.add_frame, text="Add", command=self.handle_add)
         self.add_button.grid(row=0, column=4, padx=5, pady=5)
 
+
+
         self.message_label = ctk.CTkLabel(self, text="", text_color="green")
         self.message_label.pack()
 
@@ -62,10 +64,14 @@ class ExpenseTrackerApp(ctk.CTk):
         self.apply_filter_btn = ctk.CTkButton(self.filter_frame, text="Apply Filters", command=self.apply_filters)
         self.apply_filter_btn.grid(row=0, column=4, padx=5, pady=5)
 
-        # Transaction List
+        self.summary_button = ctk.CTkButton(self.filter_frame, text="Monthly Summary", command=self.show_monthly_summary)
+        self.summary_button.grid(row=0, column=5, padx=5, pady=5)
+
         self.listbox = ctk.CTkTextbox(self, height=350)
         self.listbox.pack(padx=10, pady=10, fill="both", expand=True)
 
+        self.export_btn = ctk.CTkButton(self.filter_frame, text="Export to CSV", command=self.export_transactions)
+        self.export_btn.grid(row=0, column=6, padx=5, pady=5)
 
         self.load_transactions()
 
@@ -144,6 +150,60 @@ class ExpenseTrackerApp(ctk.CTk):
             id_, amount, type_, category, date, note = txn
             line = f"{id_:<4} ₹{amount:<8.2f} {type_:<8} {category:<12} {date:<12} {note}\n"
             self.listbox.insert("end", line)
+    from transactions import get_monthly_summary
+
+    def show_monthly_summary(self):
+        summary_data = get_monthly_summary()
+
+        summary_window = ctk.CTkToplevel(self)
+        summary_window.title("Monthly Summary")
+        summary_window.geometry("400x400")
+
+        if summary_data:
+            for month, income, expense in summary_data:
+                net = income - expense
+                label = ctk.CTkLabel(
+                    summary_window, 
+                    text=f"{month} → Income: ₹{income:.2f}, Expense: ₹{expense:.2f}, Net: ₹{net:.2f}"
+                )
+                label.pack(padx=10, pady=5)
+        else:
+            no_data_label = ctk.CTkLabel(summary_window, text="No data available.")
+            no_data_label.pack(padx=10, pady=10)
+
+    from transactions import export_to_csv
+
+    def export_transactions(self):
+        transactions = view_transactions()
+
+        keyword = self.search_entry.get().strip()
+        type_ = self.type_filter.get()
+        start = self.start_date.get().strip()
+        end = self.end_date.get().strip()
+
+        # Apply keyword filter
+        if keyword:
+            transactions = [txn for txn in transactions if keyword.lower() in (txn[4] or '').lower() or keyword.lower() in (txn[3] or '').lower()]
+
+        # Apply type filter
+        if type_ in ['income', 'expense']:
+            transactions = [txn for txn in transactions if txn[2] == type_]
+
+        # Apply date filter
+        if start and end:
+            try:
+                transactions = [txn for txn in transactions if start <= txn[4] <= end]
+            except:
+                self.message_label.configure(text="Invalid date format.", text_color="red")
+                return
+
+        if not transactions:
+            self.message_label.configure(text="No data to export.", text_color="red")
+            return
+
+        export_to_csv(transactions)
+        self.message_label.configure(text="Exported to transactions_export.csv", text_color="green")
+
 
 
 # Run the GUI

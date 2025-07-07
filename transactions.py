@@ -1,4 +1,5 @@
 import sqlite3
+from database import get_db_connection
 
 DB_PATH = 'data/tracker.db'
 
@@ -74,3 +75,30 @@ def filter_by_date_range(start_date, end_date):
     results = cursor.fetchall()
     conn.close()
     return results
+def get_monthly_summary():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT 
+            strftime('%Y-%m', date) AS month,
+            SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) AS total_income,
+            SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS total_expense
+        FROM transactions
+        GROUP BY month
+        ORDER BY month DESC
+    ''')
+
+    summary = cursor.fetchall()
+    conn.close()
+    return summary
+
+import csv
+
+def export_to_csv(transactions, filename="transactions_export.csv"):
+    with open(filename, mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(["ID", "Amount", "Type", "Category", "Date", "Note"])  # header
+        for txn in transactions:
+            writer.writerow(txn)
+

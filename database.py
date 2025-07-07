@@ -24,6 +24,10 @@ def connect():
     conn.commit()
     conn.close()
 
+def get_db_connection():
+    return sqlite3.connect('data/tracker.db')
+
+
 # Call connect only if this file is run directly
 if __name__ == '__main__':
     connect()
